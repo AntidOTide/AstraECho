@@ -4,21 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ff71f62d-025c-4ff5-8f34-a82d17491311" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/AstraEcho.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/config/config.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/config/config.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/py/app.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/py/astra_echo.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/py/main.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/py/process_message.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/py/utils.py" afterDir="false" />
+    <list default="true" id="ff71f62d-025c-4ff5-8f34-a82d17491311" name="更改" comment="first">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/config.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/config.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/memory/private/111" beforeDir="false" afterPath="$PROJECT_DIR$/py/start.bat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/py/astra_echo.py" beforeDir="false" afterPath="$PROJECT_DIR$/py/astra_echo.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/py/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/py/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/py/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/py/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,7 +33,9 @@
   &quot;associatedIndex&quot;: 4
 }</component>
   <component name="ProjectId" id="2so1hyM7pfIf2yHZ2sNMUTDZNHM" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -173,6 +168,19 @@
       <option name="presentableId" value="Default" />
       <updated>1739107236288</updated>
     </task>
+    <task id="LOCAL-00001" summary="first">
+      <option name="closed" value="true" />
+      <created>1739117324543</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1739117324543</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="first" />
+    <option name="LAST_COMMIT_MESSAGE" value="first" />
   </component>
 </project>

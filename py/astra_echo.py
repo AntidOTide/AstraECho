@@ -1,28 +1,29 @@
-from typing import overload
+import json
+import os
+import re
 import requests
 from flask import Flask, render_template, request, redirect, url_for
 from loguru import logger
-from py.utils import load_json_file,check_user_memory_folder
+from utils import load_json_file,write_json_file
 from openai import OpenAI
-
 class AstraEcho:
-    def __init__(self,
-            port,
-    ):
-        self.port =port
+    def __init__(self):
         self.llm_bot_server=Flask(__name__)
         self.config_data=load_json_file('../config/config.json')
+        self.port =self.config_data['AstraEcho']['port']
+        self.temp=self.config_data['AstraEcho']['model_temp']
         self.api_key=self.config_data['openai']['OPENAI_API_KEY']
         self.api_base=self.config_data['openai']['OPENAI_API_BASE']
         self.model=self.config_data['openai']['OPENAI_MODEL']
         self.client=OpenAI(
             base_url=self.api_base,
             api_key=self.api_key,
+
         )
         self.uid =0
         self.session_data={}
     def begin(self):
-        @self.llm_bot_server.route('/settings', methods=['GET', 'POST'])
+        # @self.llm_bot_server.route('/settings', methods=['GET', 'POST'])
         # def settings():
         #     settings_dict=config_data
         #     if request.method == 'POST':
@@ -45,6 +46,9 @@ class AstraEcho:
             return "ok"
     def run(self):
         self.llm_bot_server.run(port=self.port)
+
+
+
     def process_message(self,data:dict):
         if data['post_type'] == "message":
             if data.get('message_type') == 'private':  # 如果是私聊信息
@@ -56,24 +60,30 @@ class AstraEcho:
         self.uid = int(sender.get('user_id'))  # 获取信息发送者的 QQ号码
         nickname = sender.get('nickname')  # 获取信息发送者的 QQ昵称
         logger.info(f"收到私聊消息:{nickname}<{self.uid}>:{message}")
-
-        check_user_memory_folder(self.uid,)
-        chat_message = [{'role': 'user', 'content': message}]
+        memory_json=self.load_private_memory()
+        memory_json['memory'].append({'role': 'user', 'content': message})
+        chat_message =memory_json['memory']
         answer = self.run_chat(chat_message)
         resp = answer.choices[0].message.content
         logger.info(f"{self.model}模型返回消息:{resp}")
+        if '<think>'in resp:
+            pattern = r'<think>.*?</think>'
+            resp =re.sub(pattern, '', resp, flags=re.DOTALL).strip()
+        memory_json['memory'].append({'role': 'assistant', 'content': resp})
+        self.write_private_memory(memory_json)
         self.send_private_message(uid=self.uid, message=resp)
-    @overload
+    # @overload
     def run_chat(self,message:list):
         response = self.client.chat.completions.create(
             model=self.model,
             messages=message,
-            timeout=10
+            timeout=10,
+            top_p=self.temp
         )
         print(f"Response\n{response}")
         return response
-    def run_chat(self,message:list):
-        return "ok"
+    # def run_chat(self,message:list):
+    #     return "ok"
     def send_private_message(self,uid, message):
         try:
             print(message)
@@ -91,6 +101,48 @@ class AstraEcho:
             logger.error(error)
             return "私聊消息发送失败"
 
+    def check_user_memory_folder(self, is_private: bool=False, is_group_bool: bool=False):
+        if is_private:
+            memory_path = f"../memory/private/{self.uid}"
+            if not os.path.exists(memory_path):
+                os.makedirs(memory_path)
+                with open(memory_path + f"/{self.uid}.json", "w") as f:
+                    data = {
+                        "config": {
+                            "AI_Name":"AstraEcho"
+                        },
+                        "memory": [{
+                            "role":"system",
+                            "content":"You' are a helpful assistant"
+                        }
+                        ]
+                    }
+                    f.write(json.dumps(data, indent=4, ensure_ascii=False))
+                    f.close()
+        if is_group_bool:
+            memory_path = f"../memory/group/{self.uid}"
+            if not os.path.exists(memory_path):
+                os.makedirs(memory_path)
+                with open(memory_path + f"/{self.uid}.json", "w") as f:
+                    data = {
+                        "config": {
+                            "AI_Name":"AstraEcho"
+                        },
+                        "memory": [{
+                            "role":"system",
+                            "content":"You' are a helpful assistant"
+                        }]
+                    }
+                    f.write(json.dumps(data, indent=4, ensure_ascii=False))
+                    f.close()
+        else:
+            return "ERROR"
+    def load_private_memory(self):
+        self.check_user_memory_folder(is_private=True)
+        memory_json=load_json_file(f"../memory/private/{self.uid}/{self.uid}.json")
+        return memory_json
+    def write_private_memory(self,data):
+        write_json_file(f"../memory/private/{self.uid}/{self.uid}.json",data)
     # def send_message_deepseek(self):
     #     if self.post_type == "message":
     #         if self.data.get('message_type') == 'private':  # 如果是私聊信息

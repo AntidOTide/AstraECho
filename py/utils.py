@@ -92,15 +92,15 @@ def summary_answer(search_json):
     return response.json()['choices'][0]['message']['content']
 
 
-def chat_with_gpt(system):
+def chat_with_gpt(user):
     url = "https://cn2us02.opapi.win/v1/chat/completions"
 
     payload = json.dumps({
-        "model": "gpt-3.5-turbo",
+        "model": "deepseek-reasoner",
         "messages": [
             {
-                "role": "system",
-                "content": system
+                "role": "user",
+                "content": user
             },
             # {
             #     "role": "user",
@@ -111,16 +111,26 @@ def chat_with_gpt(system):
     headers = {
         'User-Agent': 'Apifox/1.0.0 (https://apifox.com)',
         'Content-Type': 'application/json',
-        'Authorization': 'sk-iFZyeJYF0FD999fcf3a4T3BLbkFJbeFd232421384aE99462'
+        'Authorization': 'sk-pHWCo00H54775580D97CT3BlbKFJ3e794eD16949431A84d1'
     }
     response = requests.request("POST", url, headers=headers, data=payload)
     resp_json = response.json()
     print(resp_json)
     resp = resp_json['choices'][0]['message']['content']
     return resp
+def chat_deepseek_in_openai():
+    from openai import OpenAI
+    client = OpenAI(api_key="sk-pHWCo00H54775580D97CT3BlbKFJ3e794eD16949431A84d1", base_url="https://cn2us02.opapi.win/v1/")
 
-def check_user_memory_folder(uid:int,is_private:bool,is_group_bool):
-    if is_private:
-        pass
+    # Round 1
+    messages = [{"role": "user", "content": "9.11 and 9.8, which is greater?"}]
+    response = client.chat.completions.create(
+        model="deepseek-reasoner",
+        messages=messages
+    )
+
+    reasoning_content = response.choices[0].message.reasoning_content
+    content = response.choices[0].message.content
+    print(content)
 
 
