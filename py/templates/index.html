@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>配置文件查看</title>
+</head>
+<body>
+    <h1>配置文件内容</h1>
+    <pre>{{ config | tojson(indent=4) }}</pre>
+    <br>
+    <a href="{{ url_for('edit') }}">编辑配置文件</a>
+</body>
+</html>

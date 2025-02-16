@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑配置文件</title>
+</head>
+<body>
+    <h1>编辑配置文件</h1>
+    <form method="POST">
+        {% for key, value in config.items() %}
+            <label for="{{ key }}">{{ key }}:</label>
+            <input type="text" id="{{ key }}" name="{{ key }}" value="{{ value }}">
+            <br>
+        {% endfor %}
+        <br>
+        <input type="submit" value="保存">
+    </form>
+    <br>
+    <a href="{{ url_for('index') }}">返回查看</a>
+</body>
+</html>
