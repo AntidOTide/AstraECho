@@ -1,5 +1,6 @@
 import inspect
 import re
+
 from openai.types.chat import ChatCompletionMessageToolCall
 
 
@@ -19,7 +20,9 @@ class Tool:
         """
         self.tool_methods:dict = {}  # 存储方法信息
         self.tool_list:list[dict] = []
+        self.chat_session: dict = {}
         self._extract_tool_methods()
+
 
     def _extract_tool_methods(self):
         """
@@ -70,9 +73,9 @@ class Tool:
                 function['description'] = function_description
             else:
                 function_description = None
-                ValueError(f"Init failed ,method <{method['method'].__name__}> error")
+                TypeError(f"Init failed ,method <{method['method'].__name__}> error")
         except TypeError as t:
-            raise ValueError(f"Init failed ,method <{method['method'].__name__}> error")
+            raise TypeError(f"<{t}> ,Init failed ,method <{method['method'].__name__}> error")
 
 
             # 提取参数名称和描述
@@ -99,19 +102,26 @@ class Tool:
 
         return model
 
-    def tool_parser(self,tools_call: list[ChatCompletionMessageToolCall]):
+    def _get_chat_session(self, url: str, uid: int):
+        self.chat_session = {
+            "url": url,
+            "uid": uid
+        }
+
+    def tool_parser(self, tools_call: ChatCompletionMessageToolCall):
         """
         工具解析器，用于将LLM生成的工具调用消息解析成可以执行的数据
         :param tools_call:
         :return:
         """
-        function = tools_call[0].function
+        function = tools_call.function
         arguments = function.arguments
         name = function.name
-        print(f"Deepseek实例调用的函数名为<{name}>")
-        print(f"Deepseek实例调用的函数<{name}>输入的参数为<{arguments}>")
+        print(f"LLM调用的函数名为<{name}>")
+        print(f"LLM调用的函数<{name}>输入的参数为<{arguments}>")
         result = self.use_tool(name, arguments)
         print(result)
+        return result
 
     def use_tool(self,name, arguments):
         func = self.tool_methods[name]['method']

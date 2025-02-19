@@ -1,9 +1,8 @@
-import os
 import json
+import os
+
 import requests
 from openai import OpenAI
-
-from py.astra_tools import AstraTools
 
 
 # import tiktoken
@@ -147,6 +146,7 @@ def chat_with_gpt(user):
     print(resp_json)
     resp = resp_json['choices'][0]['message']['content']
     return resp
+
 def chat_deepseek_in_openai():
     from openai import OpenAI
     client = OpenAI(api_key="sk-pHWCo00H54775580D97CT3BlbKFJ3e794eD16949431A84d1", base_url="https://cn2us02.opapi.win/v1/")
@@ -161,16 +161,16 @@ def chat_deepseek_in_openai():
     reasoning_content = response.choices[0].message.reasoning_content
     content = response.choices[0].message.content
     print(content)
-
-tools =AstraTools()
-ans =send_openai_request(
-    api_key="sk-pHWCo00H54775580D97CT3BlbKFJ3e794eD16949431A84d1",
-    api_base="https://cn2us02.opapi.win/v1/",
-    model="gpt-4o-mini",
-    text="turn on the light",
-    tools=tools.tool_list
-)
-print(ans)
-tool=ans.choices[0].message.tool_calls
-if tool:
-    tools.tool_parser(tool)
+#
+# tools =AstraTools()
+# ans =send_openai_request(
+#     api_key="sk-pHWCo00H54775580D97CT3BlbKFJ3e794eD16949431A84d1",
+#     api_base="https://cn2us02.opapi.win/v1/",
+#     model="gpt-4o-mini",
+#     text="turn on the light",
+#     tools=tools.tool_list
+# )
+# print(ans)
+# tool=ans.choices[0].message.tool_calls
+# if tool:
+#     tools.tool_parser(tool)

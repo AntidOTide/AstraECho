@@ -1,49 +1,65 @@
+import copy
 import json
 import os
 import re
-import requests
+
 from flask import Flask, render_template, request, redirect, url_for
 from loguru import logger
-from utils import load_json_file, write_json_file
 from openai import OpenAI, NOT_GIVEN
+
 from astra_tools import AstraTools
+from qq_bot import QQBot
+from utils import load_json_file, write_json_file
 
 
 class AstraEcho:
     def __init__(self):
-        self.nickname:str
-        self.sender:str
-        self.llm_bot_server:Flask = Flask(__name__)
-        self.tools:AstraTools | NOT_GIVEN
+        self.nickname: str | None = None
+        self.sender: str | None = None
+        self.uid: int | None = None
+        self.llm_bot_server: Flask = Flask(__name__)
+        self.tools: AstraTools | NOT_GIVEN
         self.config_data_path = "../config/config.json"
         self.config_data = load_json_file(self.config_data_path)
         self.port = self.config_data['AstraEcho']['port']
         self.temp = self.config_data['AstraEcho']['model_temp']
         self.request_method = self.config_data['AstraEcho']['request_method']
         self.is_write_memory = self.config_data['AstraEcho']['is_write_memory']
-        self.is_use_tools =self.config_data['AstraEcho']['is_use_tools']
+        self.debug_mode = self.config_data['AstraEcho']['debug_mode']
+        self.is_use_tools = self.config_data['AstraEcho']['is_use_tools']
+        self.output_method = self.config_data['AstraEcho']['output_method']
+
+
         if self.is_use_tools:
             self.tools = AstraTools()
         else:
             self.tools = NOT_GIVEN
-        self.debug_mode = self.config_data['AstraEcho']['debug_mode']
+
+        if self.output_method == "qq_bot":
+            self.send_message = QQBot()
+            self.qq_bot_url = self.config_data['qq_bot']['cqhttp_url']
         if self.request_method == "api":
             self.api_key = self.config_data['openai']['OPENAI_API_KEY']
             self.api_base = self.config_data['openai']['OPENAI_API_BASE']
             self.model = self.config_data['openai']['OPENAI_MODEL']
+
+
         elif self.request_method == "local":
             self.api_key = self.config_data['local']['LOCAL_API_KEY']
             self.api_base = self.config_data['local']['LOCAL_API_BASE']
             self.model = self.config_data['local']['LOCAL_MODEL']
+
+
         else:
             raise ValueError("Invalid configuration provided. Please check your config.")
+
 
         self.client = OpenAI(
             base_url=self.api_base,
             api_key=self.api_key,
         )
-        self.uid:int
         self.session_data = {}
+        self._begin()
 
     def _reset_instance(self):
         """重新实例化自身，并替换当前实例"""
@@ -54,7 +70,7 @@ class AstraEcho:
         # 替换当前实例
         self.__dict__.update(new_instance.__dict__)
 
-    def begin(self):
+    def _begin(self):
         """初始化flask服务的路由"""
 
         @self.llm_bot_server.route("/", methods=["GET"])
@@ -66,18 +82,18 @@ class AstraEcho:
             logger.info("收到上报消息:")
             logger.info(request.get_json())
             self.session_data = request.get_json()
-            self.process_message(self.session_data)
+            self._process_message(self.session_data)
             return "ok"
 
         @self.llm_bot_server.route('/setting')
         def setting():
-            config = self.read_config()
+            config = self._read_config()
             return render_template('index.html', config=config)
 
         # 编辑配置文件的页面
         @self.llm_bot_server.route('/edit', methods=['GET', 'POST'])
         def edit():
-            config = self.read_config()
+            config = self._read_config()
             if request.method == 'POST':
                 # 更新配置文件
                 for key in request.form:
@@ -88,30 +104,27 @@ class AstraEcho:
                             current[k] = {}
                         current = current[k]
                     current[keys[-1]] = request.form[key]
-                self.save_config(config)
+                self._save_config(config)
                 self._reset_instance()
                 redirect(url_for('setting'))
                 return redirect(url_for('setting'))
             return render_template('edit.html', config=config)
 
-    def run(self):
-        self.llm_bot_server.run(port=self.port, debug=self.debug_mode)
-
-    def process_message(self, data: dict):
+    def _process_message(self, data: dict):
         if data['post_type'] == "message":
             if data.get('message_type') == 'private':
-                if self.process_message_command_private():  # 如果是私聊信息
+                if self._process_message_command_private():  # 如果是私聊信息
                     return "ok"
-                self.process_private_message()
+                self._process_private_message()
 
-    def process_message_command_private(self) -> bool:
+    def _process_message_command_private(self) -> bool:
         command_dict = {
             "/获取会话": "获取当前会话信息",
-            "/更改人格+ 你需要设定的人格 ": "更改当前会话中的人格"
+            "/更改人格 + 你需要设定的人格 ": "更改当前会话中的人格"
 
         }
         message = self.session_data.get('raw_message')
-        memory_json = self.load_private_memory()
+        memory_json = self._load_private_memory()
         if message.strip().startswith("/获取会话"):
             resp = "当前会话信息为：\n"
             resp += f"窗口类型:\n"
@@ -130,73 +143,73 @@ class AstraEcho:
 
         else:
             return False
-        self.send_private_message(self.uid, resp)
+        self.send_message.send_private_message(url=self.qq_bot_url, uid=self.uid, message=resp)
         return True
 
-    def process_private_message(self):
+    def _process_private_message(self):
         """处理私人信息"""
         self.sender = self.session_data.get('sender')  # 获取发送者信息
         message = self.session_data.get('raw_message')  # 获取原始信息
         self.uid = int(self.sender.get('user_id'))  # 获取信息发送者的 QQ号码
         self.nickname = self.sender.get('nickname')  # 获取信息发送者的 QQ昵称
         logger.info(f"收到私聊消息:{self.nickname}<{self.uid}>:{message}")
-        memory_json = self.load_private_memory()
+        memory_json = self._load_private_memory()
         memory_json['memory'].append({'role': 'user', 'content': message})
-        chat_message = memory_json['memory']
+        chat_message = copy.deepcopy(memory_json['memory'])
         answer = ''
         if self.request_method == "local":
-            answer = self.run_chat_local(chat_message)
+            answer = self._run_chat_local(chat_message)
         elif self.request_method == "api":
-            answer = self.run_chat_openai(chat_message)
+            answer = self._run_chat_openai(chat_message)
+        if self.is_use_tools:
+            try:
+                is_tools_call = answer.choices[0].message.tool_calls[0]
+                if is_tools_call:
+                    self.tools._get_chat_session(url=self.qq_bot_url, uid=self.uid)
+                    tools_return = self.tools.tool_parser(is_tools_call)
+                    print(tools_return)
+                    chat_message.append(answer.choices[0].message)
+                    chat_message.append(
+                        {"role": "tool", "tool_call_id": is_tools_call.id, "content": str(tools_return)})
+                    answer = self._run_chat_openai(chat_message)
+            except TypeError as t:
+                print(t)
+                print("本次对话无工具调用")
+
+
         resp = answer.choices[0].message.content
         logger.info(f"{self.model}模型返回消息:{resp}")
         if '<think>' in resp:
             pattern = r'<think>.*?</think>'
             resp = re.sub(pattern, '', resp, flags=re.DOTALL).strip()
         memory_json['memory'].append({'role': 'assistant', 'content': resp})
+        # print(memory_json)
         if self.is_write_memory:
-            self.write_private_memory(memory_json)
-        self.send_private_message(uid=self.uid, message=resp)
+            self._write_private_memory(memory_json)
+        self.send_message.send_private_message(url=self.qq_bot_url, uid=self.uid, message=resp)
 
-    def run_chat_openai(self, message: list):
+    def _run_chat_openai(self, message: list):
         response = self.client.chat.completions.create(
             model=self.model,
             messages=message,
-            tools=self.tools,
+            tools=self.tools.tool_list,
             timeout=10,
-            top_p=self.temp
+            top_p=float(self.temp)
         )
         print(f"Response\n{response}")
         return response
 
-    def run_chat_local(self, message: list):
+    def _run_chat_local(self, message: list):
         response = self.client.chat.completions.create(
             model=self.model,
             messages=message,
-            tools=self.tools,
-            top_p=self.temp
+            tools=self.tools.tool_list,
+            top_p=float(self.temp)
         )
         print(f"Response\n{response}")
         return response
 
-    def send_private_message(self, uid, message):
-        try:
-            print(message)
-            res = requests.post(url=self.config_data['qq_bot']['cqhttp_url'] + "/send_private_msg",
-                                params={'user_id': uid, 'message': message}).json()
-            if res["status"] == "ok":
-                logger.info("私聊消息发送成功")
-                return "私聊消息发送成功"
-            else:
-                logger.info(res)
-                logger.info("私聊消息发送失败，错误信息：" + str(res['wording']))
-                return "私聊消息发送失败，错误信息：" + str(res['wording'])
-        except Exception as error:
-            logger.error("私聊消息发送失败")
-            logger.error(error)
-            return "私聊消息发送失败"
-
-    def check_user_memory_folder(self, is_private: bool = False, is_group_bool: bool = False):
+    def _check_user_memory_folder(self, is_private: bool = False, is_group_bool: bool = False):
         if is_private:
             memory_path = f"../memory/private/{self.uid}"
             if not os.path.exists(memory_path):
@@ -233,18 +246,21 @@ class AstraEcho:
         else:
             return "ERROR"
 
-    def load_private_memory(self):
-        self.check_user_memory_folder(is_private=True)
+    def _load_private_memory(self):
+        self._check_user_memory_folder(is_private=True)
         memory_json = load_json_file(f"../memory/private/{self.uid}/{self.uid}.json")
         return memory_json
 
-    def write_private_memory(self, data):
+    def _write_private_memory(self, data):
         write_json_file(f"../memory/private/{self.uid}/{self.uid}.json", data)
 
-    def read_config(self):
+    def _read_config(self):
         return self.config_data
 
     # 保存配置文件
-    def save_config(self, config):
+    def _save_config(self, config):
         with open(self.config_data_path, 'w') as f:
             json.dump(config, f, indent=4)  # 使用 indent 格式化 JSON
+
+    def run(self):
+        self.llm_bot_server.run(port=self.port, debug=self.debug_mode)

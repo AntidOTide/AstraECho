@@ -1,0 +1,2 @@
+class SendMessage:
+    pass
