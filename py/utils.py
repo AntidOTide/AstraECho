@@ -1,7 +1,11 @@
 import os
 import json
-
 import requests
+from openai import OpenAI
+
+from py.astra_tools import AstraTools
+
+
 # import tiktoken
 
 
@@ -36,7 +40,32 @@ def write_json_file(path: str, data: dict):
 #     num_tokens = len(encoding.encode(string))
 #     return num_tokens
 
+def send_post_request(
+        url:str,
+        data:dict
+):
+    resp =requests.request("POST",url=url,data=data)
+    return resp
 
+def send_openai_request(
+        api_key:str,
+        api_base:str,
+        model:str,
+        text:str,
+        tools:list[dict]|None
+):
+    client =OpenAI(
+        api_key=api_key,
+        base_url=api_base
+    )
+    resp =client.chat.completions.create(
+        model=model,
+        messages=[{"role":"user","content":text}],
+        tools=tools,
+        timeout=10,
+        top_p=1
+    )
+    return resp
 def search_serper_online(question, api_key):
     url = "https://cn2us02.opapi.win/api/v1/openapi/search/serper/v1"
     payload = {
@@ -133,4 +162,15 @@ def chat_deepseek_in_openai():
     content = response.choices[0].message.content
     print(content)
 
-
+tools =AstraTools()
+ans =send_openai_request(
+    api_key="sk-pHWCo00H54775580D97CT3BlbKFJ3e794eD16949431A84d1",
+    api_base="https://cn2us02.opapi.win/v1/",
+    model="gpt-4o-mini",
+    text="turn on the light",
+    tools=tools.tool_list
+)
+print(ans)
+tool=ans.choices[0].message.tool_calls
+if tool:
+    tools.tool_parser(tool)
